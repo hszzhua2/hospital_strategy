@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>医院空间规划 3D CAD 工具 (全功能修复版)</title>
+    <title>医院空间规划 3D CAD 工具 (GB规范增强版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -120,6 +120,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            gap: 24px;
         }
         
         .calc-card {
@@ -128,8 +129,7 @@
             border-radius: 12px;
             padding: 24px;
             width: 100%;
-            max-width: 1000px;
-            margin-bottom: 24px;
+            max-width: 1100px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
@@ -137,39 +137,44 @@
         
         .calc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
         
-        .calc-input-group label { display: block; font-size: 12px; color: #94a3b8; mb: 4px; }
+        .calc-input-group label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
         .calc-input { 
             width: 100%; background: #0f172a; border: 1px solid #475569; 
             color: white; padding: 10px; border-radius: 6px; font-size: 16px; font-family: monospace; 
         }
         .calc-input:focus { border-color: #3b82f6; outline: none; }
 
-        .calc-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .calc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .calc-table th { text-align: left; padding: 12px; background: #0f172a; color: #94a3b8; font-weight: 600; border-bottom: 2px solid #334155; }
-        .calc-table td { padding: 12px; border-bottom: 1px solid #334155; color: #e2e8f0; }
+        .calc-table td { padding: 12px; border-bottom: 1px solid #334155; color: #e2e8f0; vertical-align: middle; }
         .calc-table tr:hover td { background: #334155; }
         .calc-table input { 
-            background: transparent; border: 1px solid transparent; color: white; width: 80px; text-align: right; 
+            background: transparent; border: 1px solid #475569; color: white; width: 60px; text-align: center; 
             padding: 4px; border-radius: 4px; 
         }
-        .calc-table input:hover, .calc-table input:focus { border-color: #475569; background: #0f172a; }
+        .calc-table input:hover, .calc-table input:focus { border-color: #3b82f6; background: #0f172a; }
 
-        .diff-pos { color: #ef4444; } /* 3D > Target */
+        .chart-row { display: flex; gap: 24px; height: 320px; }
+        .chart-box { flex: 1; background: #0f172a; border-radius: 8px; padding: 16px; border: 1px solid #334155; display: flex; flex-direction: column; }
+
+        .diff-pos { color: #ef4444; font-weight: bold; } /* 3D > Target */
         .diff-neg { color: #facc15; } /* 3D < Target */
         .diff-ok { color: #4ade80; } /* Match */
+        
+        .ref-val { font-size: 11px; color: #64748b; margin-left: 4px; display: block; margin-top: 2px;}
 
         /* Common Components */
         .btn { padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
         .btn-primary { background: #3b82f6; color: white; }
         .btn-primary:hover { background: #2563eb; }
-        .btn-success { background: #10b981; color: white; }
-        .btn-success:hover { background: #059669; }
-        .btn-secondary { background: #475569; color: white; }
-        .btn-secondary:hover { background: #64748b; }
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-danger:hover { background: #dc2626; }
         .btn-view { background: transparent; color: #94a3b8; padding: 6px 10px; border-radius: 20px; }
         .btn-view:hover { background: rgba(255,255,255,0.1); color: white; }
+        .btn-secondary { background: #475569; color: white; }
+        .btn-secondary:hover { background: #64748b; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
 
         /* Floating Labels */
         .label-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 10; }
@@ -187,6 +192,7 @@
             color: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700;
             transform: translate(-50%, -50%); pointer-events: auto;
             border: 1px solid rgba(255,255,255,0.4);
+            white-space: nowrap;
         }
 
         #selection-box { position: absolute; border: 1px solid #3b82f6; background: rgba(59, 130, 246, 0.15); pointer-events: none; z-index: 99; display: none; }
@@ -213,11 +219,15 @@
         .list-item:hover { background: rgba(255,255,255,0.05); }
         .list-item.selected { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
+        .list-item.core-item { background: rgba(148, 163, 184, 0.1); border-left: 2px solid #94a3b8; }
         
         .rel-good { color: #4ade80; }
         .rel-bad { color: #f87171; }
         .metric-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #94a3b8; }
         .metric-val { color: #fff; font-family: monospace; }
+
+        /* Hide elements */
+        #file-input { display: none; }
     </style>
     
     <script type="importmap">
@@ -278,7 +288,7 @@
                         <button id="btn-import-project" class="btn btn-secondary w-full">📥 导入</button>
                     </div>
                     <button id="btn-export-project" class="btn btn-success w-full">💾 导出 (JSON)</button>
-                    <input type="file" id="file-input" accept=".json" style="display:none;">
+                    <input type="file" id="file-input" accept=".json">
 
                     <div class="sidebar-divider"></div>
 
@@ -346,7 +356,7 @@
                 <!-- Global Settings Card -->
                 <div class="calc-card">
                     <div class="calc-header">
-                        <span><i class="fas fa-cog text-blue-400 mr-2"></i> 全局测算指标</span>
+                        <span><i class="fas fa-cog text-blue-400 mr-2"></i> 测算指标 (参考 GB51039-2014)</span>
                         <button class="btn btn-primary" onclick="window.syncTo3D()"><i class="fas fa-sync"></i> 同步至 3D 模型</button>
                     </div>
                     <div class="calc-grid">
@@ -356,11 +366,33 @@
                         </div>
                         <div class="calc-input-group">
                             <label>📐 单床综合建筑面积 (㎡/床)</label>
-                            <input type="number" id="calc-area-per-bed" class="calc-input" value="120" oninput="window.recalc()">
+                            <input type="number" id="calc-area-per-bed" class="calc-input" value="110" oninput="window.recalc()">
+                            <div class="text-xs text-gray-500 mt-1">GB参考: 110-140㎡/床</div>
                         </div>
                         <div class="calc-input-group">
                             <label>🏢 目标总建筑面积 (㎡)</label>
-                            <input type="text" id="calc-total-area-target" class="calc-input text-green-400 font-bold" readonly value="60000">
+                            <input type="text" id="calc-total-area-target" class="calc-input text-green-400 font-bold" readonly value="55000">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chart Area (Restored) -->
+                 <div class="calc-card">
+                    <div class="calc-header">
+                        <span><i class="fas fa-chart-bar text-green-400 mr-2"></i> 统计分析</span>
+                    </div>
+                    <div class="chart-row">
+                        <div class="chart-box">
+                            <h4 class="text-sm font-bold text-gray-400 mb-2">功能区面积占比</h4>
+                            <div style="flex:1; position:relative; min-height: 250px;">
+                                <canvas id="calcPieChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-box">
+                            <h4 class="text-sm font-bold text-gray-400 mb-2">规划对比 (目标 vs 设计)</h4>
+                            <div style="flex:1; position:relative; min-height: 250px;">
+                                <canvas id="calcBarChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -368,7 +400,7 @@
                 <!-- Department Breakdown Card -->
                 <div class="calc-card">
                     <div class="calc-header">
-                        <span><i class="fas fa-table text-purple-400 mr-2"></i> 科室面积配比与校核</span>
+                        <span><i class="fas fa-table text-purple-400 mr-2"></i> 面积配比与校核</span>
                         <div class="text-sm font-normal text-gray-400">
                             当前3D总面积: <span id="calc-current-3d-area" class="text-white font-mono">0</span> ㎡
                         </div>
@@ -378,11 +410,11 @@
                             <thead>
                                 <tr>
                                     <th width="20%">科室名称</th>
-                                    <th width="15%">面积占比 (%)</th>
+                                    <th width="15%">规范参考占比 <span class="ref-val">(GB51039)</span></th>
+                                    <th width="15%">设定占比 (%)</th>
                                     <th width="15%">目标面积 (㎡)</th>
-                                    <th width="15%">当前3D面积 (㎡)</th>
-                                    <th width="15%">差异</th>
-                                    <th width="20%">说明</th>
+                                    <th width="15%">设计值 (3D)</th>
+                                    <th width="20%">偏差</th>
                                 </tr>
                             </thead>
                             <tbody id="calc-table-body">
@@ -401,36 +433,50 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-        // --- GLOBAL STATE ---
+        // --- GLOBAL STATE & CONFIG ---
         const initialDepartments = [
-            { id: 'emergency', name: '急诊部', color: '#ef4444', beds: 50, w: 40, h: 5, d: 30, x: -50, y: 2.5, z: 20 },
-            { id: 'imaging', name: '影像中心', color: '#3b82f6', beds: 0, w: 30, h: 5, d: 25, x: 0, y: 2.5, z: 20 },
-            { id: 'surgery', name: '手术中心', color: '#a855f7', beds: 20, w: 40, h: 6, d: 40, x: 0, y: 10, z: 0 },
-            { id: 'icu', name: 'ICU 重症', color: '#ef4444', beds: 30, w: 25, h: 5, d: 20, x: -40, y: 10, z: 0 },
-            { id: 'outpatient', name: '门诊大厅', color: '#22c55e', beds: 0, w: 60, h: 8, d: 40, x: 0, y: 4, z: 70 },
-            { id: 'pharmacy', name: '中心药房', color: '#f97316', beds: 0, w: 20, h: 5, d: 15, x: 50, y: 2.5, z: 60 },
+            { id: 'emergency', name: '急诊部', color: '#ef4444', beds: 30, w: 40, h: 5, d: 30, x: -50, y: 2.5, z: 20 },
+            { id: 'imaging', name: '医技中心', color: '#3b82f6', beds: 0, w: 30, h: 5, d: 25, x: 0, y: 2.5, z: 20 },
+            { id: 'surgery', name: '手术部', color: '#a855f7', beds: 0, w: 40, h: 6, d: 40, x: 0, y: 10, z: 0 },
+            { id: 'icu', name: 'ICU', color: '#ef4444', beds: 20, w: 25, h: 5, d: 20, x: -40, y: 10, z: 0 },
+            { id: 'outpatient', name: '门诊部', color: '#22c55e', beds: 0, w: 60, h: 8, d: 40, x: 0, y: 4, z: 70 },
+            { id: 'pharmacy', name: '药房/供应', color: '#f97316', beds: 0, w: 20, h: 5, d: 15, x: 50, y: 2.5, z: 60 },
             { id: 'inpatient_1', name: '住院部 A', color: '#eab308', beds: 100, w: 80, h: 4, d: 20, x: 0, y: 20, z: -40 },
             { id: 'inpatient_2', name: '住院部 B', color: '#eab308', beds: 100, w: 80, h: 4, d: 20, x: 0, y: 26, z: -40 },
-            { id: 'lab', name: '检验科', color: '#3b82f6', beds: 0, w: 25, h: 5, d: 25, x: 40, y: 2.5, z: 20 },
+            { id: 'admin', name: '行政后勤', color: '#64748b', beds: 0, w: 30, h: 10, d: 20, x: 50, y: 5, z: -20 },
         ];
         
-        // Planning Config State (Calculator)
+        // GB51039-2014 Reference Ranges (Approximate)
+        const gbRefRanges = {
+            'emergency': '2%~4%',
+            'outpatient': '10%~15%',
+            'tech': '15%~20%', // Imaging, Surgery, Lab, ICU
+            'inpatient': '35%~45%',
+            'admin': '15%~25%', // Pharmacy (supply), Admin
+            'other': '-'
+        };
+
+        // Planning Config State
         let planningConfig = {
             totalBeds: 500,
-            areaPerBed: 120,
-            // Default ratios. If a dept is added in 3D, it will be added here dynamically.
+            areaPerBed: 110,
             deptRatios: [
-                 { id: 'emergency', ratio: 8 },
-                 { id: 'outpatient', ratio: 15 },
-                 { id: 'imaging', ratio: 10 },
-                 { id: 'surgery', ratio: 12 },
-                 { id: 'icu', ratio: 5 },
-                 { id: 'inpatient_1', ratio: 20 },
-                 { id: 'inpatient_2', ratio: 20 },
-                 { id: 'pharmacy', ratio: 4 },
-                 { id: 'lab', ratio: 6 }
+                 { id: 'emergency', ratio: 4, refType: 'emergency' },
+                 { id: 'outpatient', ratio: 14, refType: 'outpatient' },
+                 { id: 'imaging', ratio: 10, refType: 'tech' },
+                 { id: 'surgery', ratio: 5, refType: 'tech' },
+                 { id: 'icu', ratio: 3, refType: 'tech' },
+                 { id: 'inpatient_1', ratio: 18, refType: 'inpatient' },
+                 { id: 'inpatient_2', ratio: 18, refType: 'inpatient' },
+                 { id: 'pharmacy', ratio: 3, refType: 'admin' },
+                 { id: 'admin', ratio: 15, refType: 'admin' },
+                 { id: 'lab', ratio: 5, refType: 'tech' } // Extra
             ]
         };
+        
+        // Chart Instances
+        let pieChart = null;
+        let barChart = null;
 
         // --- TAB SWITCHING ---
         window.switchTab = function(tabId) {
@@ -439,10 +485,12 @@
             
             document.getElementById(`view-${tabId}`).classList.add('active');
             const tabs = document.querySelectorAll('.nav-tab');
-            if(tabId === '3d') tabs[0].classList.add('active');
-            else {
+            if(tabId === '3d') {
+                tabs[0].classList.add('active');
+                onWindowResize(); 
+            } else {
                 tabs[1].classList.add('active');
-                window.recalc(); // Refresh calc view on open
+                window.recalc(); 
             }
         };
         
@@ -452,13 +500,46 @@
              const collapsedClass = `collapsed-${side}`;
              sidebar.classList.toggle(collapsedClass);
              
-             // Rotate icon
              const isCollapsed = sidebar.classList.contains(collapsedClass);
              const rot = (side === 'left') ? (isCollapsed ? '180deg' : '0deg') : (isCollapsed ? '180deg' : '0deg');
              icon.style.transform = `rotate(${rot})`;
         };
 
-        // --- CALCULATOR LOGIC ---
+        // --- CALCULATOR & CHARTS ---
+        function initCharts() {
+            // Pie Chart
+            const ctxPie = document.getElementById('calcPieChart').getContext('2d');
+            pieChart = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 0 }] },
+                options: { 
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: {size: 11} } } } 
+                }
+            });
+
+            // Bar Chart
+            const ctxBar = document.getElementById('calcBarChart').getContext('2d');
+            barChart = new Chart(ctxBar, {
+                type: 'bar',
+                data: { 
+                    labels: [], 
+                    datasets: [
+                        { label: '目标面积', data: [], backgroundColor: '#3b82f6', barPercentage: 0.6 },
+                        { label: '设计值(3D)', data: [], backgroundColor: '#10b981', barPercentage: 0.6 }
+                    ] 
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { 
+                        y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, 
+                        x: { ticks: { color: '#94a3b8', autoSkip: false, maxRotation: 45, minRotation: 45 } } 
+                    },
+                    plugins: { legend: { labels: { color: '#e2e8f0' } } }
+                }
+            });
+        }
+
         window.recalc = function() {
             // Read UI
             planningConfig.totalBeds = parseFloat(document.getElementById('calc-total-beds').value) || 0;
@@ -478,34 +559,29 @@
             });
             document.getElementById('calc-current-3d-area').innerText = current3DTotal.toLocaleString();
 
-            // Sync Ratios: Ensure all 3D blocks have a ratio config
+            // Prepare Data for Charts
+            const chartLabels = [];
+            const chartDataTarget = [];
+            const chartDataActual = [];
+            const chartColors = [];
+
+            // Ensure all current blocks have a config entry
             blocks.forEach(b => {
                 const found = planningConfig.deptRatios.find(d => d.id === b.userData.id);
                 if(!found) {
-                     planningConfig.deptRatios.push({ id: b.userData.id, ratio: 5 }); // Default 5%
+                     planningConfig.deptRatios.push({ id: b.userData.id, ratio: 5, refType: 'other' });
                 }
             });
 
-            // Build Table
-            // Iterate over all known configs (from initial or added)
-            // But we also need Name and Color from 3D blocks or initial data if block deleted
-            // Strategy: Use planningConfig.deptRatios as the source of rows
-            
             planningConfig.deptRatios.forEach(conf => {
-                // Try to find Name/Color from 3D block first, then initial
-                let name = "未知科室";
+                let name = "未知";
                 let color = "#999";
                 
                 const block = blocks.find(b => b.userData.id === conf.id);
-                if(block) {
-                    name = block.userData.name;
-                    color = block.userData.color;
-                } else {
+                if(block) { name = block.userData.name; color = block.userData.color; }
+                else {
                     const init = initialDepartments.find(i => i.id === conf.id);
-                    if(init) {
-                        name = init.name;
-                        color = init.color;
-                    }
+                    if(init) { name = init.name; color = init.color; }
                 }
                 
                 const targetArea = (targetTotalArea * conf.ratio) / 100;
@@ -520,25 +596,39 @@
                     diffIcon = diff > 0 ? 'fa-arrow-up' : 'fa-arrow-down';
                 }
 
+                // Reference Range from GB map
+                const refRange = gbRefRanges[conf.refType] || '-';
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="font-bold text-gray-300">
-                        <span class="status-dot" style="background:${color}"></span> ${name}
-                    </td>
-                    <td>
-                        <input type="number" value="${conf.ratio}" 
-                               onchange="window.updateRatio('${conf.id}', this.value)"
-                               style="width: 50px; border-bottom: 1px solid #555;"> %
-                    </td>
-                    <td class="font-mono">${targetArea.toFixed(0)}</td>
+                    <td class="font-bold text-gray-300"><span class="status-dot" style="background:${color}"></span> ${name}</td>
+                    <td class="text-xs text-gray-400 font-mono">${refRange}</td>
+                    <td><input type="number" value="${conf.ratio}" onchange="window.updateRatio('${conf.id}', this.value)" style="width: 50px; border-bottom: 1px solid #555;"> %</td>
+                    <td class="font-mono text-blue-300">${targetArea.toFixed(0)}</td>
                     <td class="font-mono text-white">${currentArea.toFixed(0)}</td>
-                    <td class="${diffClass} font-mono text-xs">
-                        <i class="fas ${diffIcon}"></i> ${Math.abs(diff).toFixed(0)}
-                    </td>
-                    <td class="text-xs text-gray-500">建议值</td>
+                    <td class="${diffClass} font-mono text-xs"><i class="fas ${diffIcon}"></i> ${Math.abs(diff).toFixed(0)}</td>
                 `;
                 tbody.appendChild(tr);
+
+                // Chart Data
+                chartLabels.push(name);
+                chartDataTarget.push(targetArea);
+                chartDataActual.push(currentArea);
+                chartColors.push(color);
             });
+
+            // Update Charts
+            if(pieChart && barChart) {
+                pieChart.data.labels = chartLabels;
+                pieChart.data.datasets[0].data = chartDataActual; // Show actual distribution
+                pieChart.data.datasets[0].backgroundColor = chartColors;
+                pieChart.update();
+
+                barChart.data.labels = chartLabels;
+                barChart.data.datasets[0].data = chartDataTarget;
+                barChart.data.datasets[1].data = chartDataActual;
+                barChart.update();
+            }
         };
 
         window.updateRatio = function(id, val) {
@@ -550,10 +640,8 @@
         };
 
         window.syncTo3D = function() {
-            if(!confirm("确定要根据测算指标调整所有科室的面积吗？\n这将改变 3D 模型中科室的尺寸。")) return;
-            
+            if(!confirm("确定要根据测算指标调整 3D 模型吗？")) return;
             const targetTotal = planningConfig.totalBeds * planningConfig.areaPerBed;
-
             blocks.forEach(block => {
                 const conf = planningConfig.deptRatios.find(d => d.id === block.userData.id);
                 if (conf) {
@@ -562,8 +650,7 @@
                         const currentArea = block.scale.x * block.scale.z;
                         if (currentArea > 0) {
                             const k = Math.sqrt(targetArea / currentArea);
-                            block.scale.x *= k;
-                            block.scale.z *= k;
+                            block.scale.x *= k; block.scale.z *= k;
                             block.updateMatrix();
                         } else {
                             const side = Math.sqrt(targetArea);
@@ -573,15 +660,13 @@
                     }
                 }
             });
-            
             updateConnectionsAndGlobalStats(true);
             window.recalc();
             alert("同步完成！");
             window.switchTab('3d');
         };
 
-
-        // --- 3D ENGINE VARIABLES ---
+        // --- 3D ENGINE ---
         let blocks = []; 
         let blockMap = {};
         let connectionLines = []; 
@@ -592,7 +677,6 @@
         let isSortedByDistance = false;
         let frameCounter = 0;
         
-        // --- 3D Setup ---
         const canvas = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0f172a); 
@@ -606,7 +690,6 @@
         dirLight.position.set(100, 200, 100);
         scene.add(dirLight);
 
-        // Ortho Camera
         const aspect = window.innerWidth / window.innerHeight;
         const frustumSize = 300;
         const camera = new THREE.OrthographicCamera( 
@@ -637,14 +720,10 @@
         let isSelecting = false;
         let startSelectionCoords = { x: 0, y: 0 };
         const selectionBox = document.getElementById('selection-box');
-
-        // --- DOM Elements ---
         const deptListContainer = document.getElementById('dept-list');
         const labelsLayer = document.getElementById('labels-layer');
         const relListContainer = document.getElementById('relationship-list');
 
-        // --- Functions ---
-        
         function createBlock(data) {
             const geometry = new THREE.BoxGeometry(1, 1, 1);
             const material = new THREE.MeshStandardMaterial({
@@ -660,7 +739,6 @@
             blocks.push(mesh);
             blockMap[data.id] = mesh;
 
-            // HTML Label
             const labelDiv = document.createElement('div');
             labelDiv.className = 'dept-label';
             labelDiv.id = `label-${data.id}`;
@@ -766,10 +844,9 @@
 
             // Update Lines
             const listData = [];
-            connectionLines.forEach(c => {
-                const s = c.fromMesh.position;
-                const e = c.toMesh.position;
-                
+            connectionLines.forEach(conn => {
+                const s = conn.fromMesh.position;
+                const e = conn.toMesh.position;
                 const p1 = new THREE.Vector3(e.x, s.y, s.z);
                 const p2 = new THREE.Vector3(e.x, s.y, e.z);
                 
@@ -777,43 +854,64 @@
                     s.x, s.y, s.z, p1.x, p1.y, p1.z,
                     p2.x, p2.y, p2.z, e.x, e.y, e.z
                 ]);
-                c.mesh.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                c.mesh.computeLineDistances();
+                conn.mesh.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                conn.mesh.computeLineDistances();
 
                 const dist = Math.abs(s.x - e.x) + Math.abs(s.z - e.z);
-                const turns = (Math.abs(s.x - e.x) > 1 && Math.abs(s.z - e.z) > 1) ? 1 : 0;
-                const isTooFar = dist > 100;
-                
-                const isSel = selectedBlocks.length > 0;
-                const isRel = isSel && (selectedBlocks.includes(c.fromMesh) || selectedBlocks.includes(c.toMesh));
-                
-                let op = 0.4;
-                if(isSel) op = isRel ? 1.0 : 0.05;
-                
-                c.mesh.material.opacity = showDistanceLabels ? op : (isSel ? op : 0.1);
-                c.mesh.material.color.set(isTooFar ? '#ef4444' : '#22c55e');
+                const dx = Math.abs(s.x - e.x);
+                const dz = Math.abs(s.z - e.z);
+                const turns = (dx > 1 && dz > 1) ? 1 : 0;
+                             
+                const threshold = 100; 
+                const isTooFar = dist > threshold;
+
+                let opacity = 0.4;
+                let colorVal = isTooFar ? '#ef4444' : '#22c55e';
+                let isVisible = showDistanceLabels; 
+
+                if (selectedBlocks.length > 0) {
+                    const isConnected = selectedBlocks.some(sb => conn.fromMesh === sb || conn.toMesh === sb);
+                    if (isConnected) {
+                        opacity = 1.0; 
+                        conn.labelEl.style.zIndex = '100';
+                        conn.labelEl.style.border = '1px solid #333';
+                        isVisible = true; 
+                    } else {
+                        opacity = 0.05; 
+                        conn.labelEl.style.zIndex = '1';
+                        conn.labelEl.style.border = 'none';
+                    }
+                } else {
+                    opacity = 0.4;
+                    conn.labelEl.style.zIndex = '5';
+                    conn.labelEl.style.border = '1px solid #ccc';
+                }
+
+                conn.mesh.material.color.set(colorVal);
+                conn.mesh.material.opacity = isVisible ? opacity : (selectedBlocks.length > 0 ? opacity : 0.1);
 
                 const mid = new THREE.Vector3().addVectors(s, e).multiplyScalar(0.5);
                 mid.project(camera);
                 
-                const showLbl = showDistanceLabels || isRel;
+                const showLbl = showDistanceLabels || (selectedBlocks.length > 0 && opacity > 0.1); // Show if toggled ON or if highlighted
+
                 if(showLbl) {
                     const x = (mid.x * .5 + .5) * window.innerWidth;
                     const y = (mid.y * -.5 + .5) * window.innerHeight;
-                    c.labelEl.style.display = 'flex';
-                    c.labelEl.style.left = x + 'px';
-                    c.labelEl.style.top = y + 'px';
-                    c.labelEl.textContent = `${dist.toFixed(0)}m`;
-                    c.labelEl.style.color = isTooFar ? '#ef4444' : '#15803d';
-                    c.labelEl.style.opacity = op;
+                    conn.labelEl.style.display = 'flex';
+                    conn.labelEl.style.left = x + 'px';
+                    conn.labelEl.style.top = y + 'px';
+                    conn.labelEl.textContent = `${dist.toFixed(0)}m / ${turns}转`; 
+                    conn.labelEl.style.color = isTooFar ? '#ef4444' : '#15803d';
+                    conn.labelEl.style.opacity = opacity;
                 } else {
-                    c.labelEl.style.display = 'none';
+                    conn.labelEl.style.display = 'none';
                 }
 
                 if(force || frameCounter % 30 === 0) {
                     listData.push({
-                        n1: c.fromMesh.userData.name, n2: c.toMesh.userData.name,
-                        dist, isTooFar, isRel
+                        n1: conn.fromMesh.userData.name, n2: conn.toMesh.userData.name,
+                        dist, isTooFar
                     });
                 }
             });
@@ -822,9 +920,8 @@
                 if(isSortedByDistance) listData.sort((a,b) => b.dist - a.dist);
                 let html = '';
                 listData.forEach(d => {
-                    const cls = d.isRel || selectedBlocks.length===0 ? '' : 'opacity-30';
                     const col = d.isTooFar ? 'text-red-400' : 'text-green-400';
-                    html += `<div class="flex justify-between text-xs py-1 border-b border-white/5 ${cls}">
+                    html += `<div class="flex justify-between text-xs py-1 border-b border-white/5">
                         <span class="truncate w-32" title="${d.n1}-${d.n2}">${d.n1.substring(0,6)}-${d.n2.substring(0,6)}</span>
                         <span class="${col} font-mono">${d.dist.toFixed(0)}m</span>
                     </div>`;
@@ -880,12 +977,13 @@
         }
 
         // --- Event Listeners ---
-        window.addEventListener('resize', () => {
+        function onWindowResize() {
             const asp = window.innerWidth/window.innerHeight;
             camera.left = -300*asp/2; camera.right = 300*asp/2;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        }
+        window.addEventListener('resize', onWindowResize);
 
         // Input Bindings
         ['input-name','input-color','input-beds-prop','input-width','input-depth','input-height','input-y'].forEach(id => {
@@ -945,7 +1043,6 @@
         window.addEventListener('pointerup', e => {
             if(isSelecting) {
                 isSelecting = false; selectionBox.style.display = 'none'; orbit.enabled = true;
-                // If simple click
                 if(Math.abs(e.clientX - startSelectionCoords.x) < 5) {
                     mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
                     raycaster.setFromCamera(mouse, camera);
@@ -1130,8 +1227,8 @@
                 // Reset planning to default
                 planningConfig = {
                     totalBeds: 500,
-                    areaPerBed: 120,
-                    deptRatios: initialDepartments.map(d => ({id: d.id, ratio: d.ratio || 5}))
+                    areaPerBed: 110,
+                    deptRatios: initialDepartments.map(d => ({id: d.id, ratio: 5, refType: 'other'}))
                 };
                 document.getElementById('calc-total-beds').value = 500;
                 
@@ -1147,21 +1244,19 @@
         initialDepartments.forEach(createBlock);
         regenerateAllConnections();
         updateConnectionsAndGlobalStats(true);
-        window.recalc(); // Init calc table
+        initCharts();
+        window.recalc(); 
 
         function animate() {
             requestAnimationFrame(animate);
             frameCounter++;
             orbit.update();
-            // Sync labels position
             blocks.forEach(b => {
                 if(!b.userData.labelElement) return;
                 const v = b.position.clone().project(camera);
-                // hide if behind camera? ortho always front basically
                 b.userData.labelElement.style.left = (v.x*.5+.5)*window.innerWidth + 'px';
                 b.userData.labelElement.style.top = (-v.y*.5+.5)*window.innerHeight + 'px';
             });
-            
             updateConnectionsAndGlobalStats(false);
             renderer.render(scene, camera);
         }
@@ -1178,13 +1273,8 @@
                 case 'north': targetPos.set(0, 0, -dist); break; 
                 case 'east': targetPos.set(dist, 0, 0); break; 
                 case 'west': targetPos.set(-dist, 0, 0); break; 
-                case 'top': 
-                    targetPos.set(0, dist, 0); 
-                    targetUp.set(0, 0, -1); 
-                    break;
-                case 'reset':
-                    targetPos.set(200, 200, 200);
-                    break;
+                case 'top': targetPos.set(0, dist, 0); targetUp.set(0, 0, -1); break;
+                case 'reset': targetPos.set(200, 200, 200); break;
             }
 
             if (targetPos) {
