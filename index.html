@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医院空间规划 3D CAD 工具 (全功能修复版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        
+        /* Layout */
+        #app-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Top Navigation Bar */
+        #main-nav {
+            height: 56px;
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .nav-brand { font-weight: 700; font-size: 18px; color: #60a5fa; display: flex; align-items: center; gap: 8px; }
+        
+        .nav-tabs { display: flex; gap: 4px; background: #1e293b; padding: 4px; border-radius: 8px; }
+        .nav-tab {
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #94a3b8;
+        }
+        .nav-tab:hover { color: #f1f5f9; }
+        .nav-tab.active {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        /* View Containers */
+        .view-section { flex: 1; position: relative; overflow: hidden; display: none; }
+        .view-section.active { display: block; }
+        
+        /* --- 3D View Styles --- */
+        #canvas-container { width: 100%; height: 100%; display: block; outline: none; background: #0f172a; }
+        
+        .panel {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            position: absolute;
+            pointer-events: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Sidebars */
+        .sidebar {
+            position: absolute;
+            top: 16px; bottom: 16px;
+            width: 340px;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar.left { left: 16px; }
+        .sidebar.right { right: 16px; }
+        .sidebar.collapsed-left { transform: translateX(-360px); }
+        .sidebar.collapsed-right { transform: translateX(360px); }
+
+        /* Toggle Buttons */
+        .toggle-btn {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 24px; height: 64px;
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #94a3b8;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: -1; transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .toggle-btn:hover { background: #3b82f6; color: white; }
+        .sidebar.left .toggle-btn { right: -24px; border-radius: 0 12px 12px 0; border-left: none; }
+        .sidebar.right .toggle-btn { left: -24px; border-radius: 12px 0 0 12px; border-right: none; }
+
+        /* Content Areas */
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 20px; }
+        .sidebar-content::-webkit-scrollbar { width: 4px; }
+        .sidebar-content::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .sidebar-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 16px 0; }
+
+        /* View Controls */
+        #view-controls {
+            position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);
+            padding: 6px 12px; border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex; gap: 6px; z-index: 90;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            align-items: center;
+        }
+
+        /* --- Calculator View Styles --- */
+        #calc-container {
+            width: 100%; height: 100%;
+            padding: 30px;
+            overflow-y: auto;
+            background-color: #0f172a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .calc-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .calc-header { font-size: 18px; font-weight: 700; color: #f8fafc; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .calc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        
+        .calc-input-group label { display: block; font-size: 12px; color: #94a3b8; mb: 4px; }
+        .calc-input { 
+            width: 100%; background: #0f172a; border: 1px solid #475569; 
+            color: white; padding: 10px; border-radius: 6px; font-size: 16px; font-family: monospace; 
+        }
+        .calc-input:focus { border-color: #3b82f6; outline: none; }
+
+        .calc-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .calc-table th { text-align: left; padding: 12px; background: #0f172a; color: #94a3b8; font-weight: 600; border-bottom: 2px solid #334155; }
+        .calc-table td { padding: 12px; border-bottom: 1px solid #334155; color: #e2e8f0; }
+        .calc-table tr:hover td { background: #334155; }
+        .calc-table input { 
+            background: transparent; border: 1px solid transparent; color: white; width: 80px; text-align: right; 
+            padding: 4px; border-radius: 4px; 
+        }
+        .calc-table input:hover, .calc-table input:focus { border-color: #475569; background: #0f172a; }
+
+        .diff-pos { color: #ef4444; } /* 3D > Target */
+        .diff-neg { color: #facc15; } /* 3D < Target */
+        .diff-ok { color: #4ade80; } /* Match */
+
+        /* Common Components */
+        .btn { padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-secondary { background: #475569; color: white; }
+        .btn-secondary:hover { background: #64748b; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-view { background: transparent; color: #94a3b8; padding: 6px 10px; border-radius: 20px; }
+        .btn-view:hover { background: rgba(255,255,255,0.1); color: white; }
+
+        /* Floating Labels */
+        .label-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 10; }
+        .dept-label {
+            position: absolute; background: rgba(15, 23, 42, 0.85); color: white;
+            padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+            transform: translate(-50%, -50%); pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px);
+            display: flex; gap: 6px; align-items: center;
+        }
+        .dept-label .area-tag { font-size: 10px; color: #94a3b8; background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 4px; }
+        
+        .distance-label {
+            position: absolute; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px);
+            color: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700;
+            transform: translate(-50%, -50%); pointer-events: auto;
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+
+        #selection-box { position: absolute; border: 1px solid #3b82f6; background: rgba(59, 130, 246, 0.15); pointer-events: none; z-index: 99; display: none; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+        /* Form Inputs in Panels */
+        .form-group { margin-bottom: 12px; }
+        .form-label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
+        .form-input { 
+            width: 100%; background: #0f172a; border: 1px solid #334155; 
+            color: white; padding: 6px 8px; border-radius: 4px; font-size: 12px; 
+        }
+
+        /* List Items */
+        .list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px; border-radius: 6px; cursor: pointer; transition: background 0.2s;
+            border: 1px solid transparent; font-size: 12px; margin-bottom: 2px;
+        }
+        .list-item:hover { background: rgba(255,255,255,0.05); }
+        .list-item.selected { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
+        
+        .rel-good { color: #4ade80; }
+        .rel-bad { color: #f87171; }
+        .metric-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #94a3b8; }
+        .metric-val { color: #fff; font-family: monospace; }
+    </style>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Main Navigation -->
+    <nav id="main-nav">
+        <div class="nav-brand">
+            <i class="fas fa-hospital-alt"></i> 医院空间规划工具
+        </div>
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="window.switchTab('3d')"><i class="fas fa-cube"></i> 3D 空间设计</div>
+            <div class="nav-tab" onclick="window.switchTab('calc')"><i class="fas fa-calculator"></i> 医疗规模测算</div>
+        </div>
+        <div class="flex gap-2">
+            <!-- Global Actions can go here -->
+        </div>
+    </nav>
+
+    <div id="app-container">
+        
+        <!-- === VIEW 1: 3D CAD === -->
+        <div id="view-3d" class="view-section active">
+            <div id="canvas-container"></div>
+            <div id="labels-layer" class="label-container"></div>
+            <div id="selection-box"></div>
+
+            <!-- View Controls -->
+            <div id="view-controls">
+                <button class="btn-view" onclick="window.resetUI()" title="恢复界面">🔄 重置</button>
+                <div class="w-px h-4 bg-gray-600 mx-1"></div>
+                <button class="btn-view" onclick="window.setView('south')">南</button>
+                <button class="btn-view" onclick="window.setView('north')">北</button>
+                <button class="btn-view" onclick="window.setView('east')">东</button>
+                <button class="btn-view" onclick="window.setView('west')">西</button>
+                <button class="btn-view" onclick="window.setView('top')">顶</button>
+                <div class="w-px h-4 bg-gray-600 mx-1"></div>
+                <button class="btn-view text-blue-400" id="btn-toggle-labels" onclick="window.toggleLabels()">📏 标注: 开</button>
+            </div>
+
+            <!-- Left Sidebar -->
+            <div id="sidebar-left" class="sidebar left panel">
+                <div class="toggle-btn" onclick="window.toggleSidebar('left')">
+                    <i class="fas fa-chevron-left" id="icon-left"></i>
+                </div>
+                <div class="sidebar-content">
+                    <div class="text-sm font-bold text-blue-400 uppercase mb-4 border-b border-gray-700 pb-2"><i class="fas fa-folder-open"></i> 项目管理</div>
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button id="btn-new-project" class="btn btn-secondary w-full">📄 新建</button>
+                        <button id="btn-import-project" class="btn btn-secondary w-full">📥 导入</button>
+                    </div>
+                    <button id="btn-export-project" class="btn btn-success w-full">💾 导出 (JSON)</button>
+                    <input type="file" id="file-input" accept=".json" style="display:none;">
+
+                    <div class="sidebar-divider"></div>
+
+                    <div class="text-sm font-bold text-blue-400 uppercase mb-4 border-b border-gray-700 pb-2"><i class="fas fa-chart-pie"></i> 规划概览</div>
+                    <div class="metric-row"><span>总建筑面积</span><span class="metric-val" id="total-area">0 m²</span></div>
+                    <div class="metric-row"><span>总容积</span><span class="metric-val" id="total-volume">0 m³</span></div>
+                    <div class="metric-row"><span>科室数量</span><span class="metric-val" id="dept-count">0</span></div>
+                    <div class="metric-row pt-2 border-t border-gray-700"><span class="text-gray-300 font-bold">总床位数</span><span class="metric-val text-blue-400 font-bold text-base" id="total-beds">0</span></div>
+                    
+                    <div class="mt-4 text-sm font-bold text-gray-500 uppercase mb-2 flex justify-between items-center">
+                        <span>🔗 距离监控</span>
+                        <button id="btn-sort-dist" class="text-[10px] bg-gray-800 px-2 py-1 rounded border border-gray-700 hover:text-white" onclick="window.toggleSort()">排序</button>
+                    </div>
+                    <div id="relationship-list" class="max-h-60 overflow-y-auto mt-2 pr-1"></div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar -->
+            <div id="sidebar-right" class="sidebar right panel">
+                <div class="toggle-btn" onclick="window.toggleSidebar('right')">
+                    <i class="fas fa-chevron-right" id="icon-right"></i>
+                </div>
+                <div class="sidebar-content flex flex-col h-full">
+                    <button id="btn-add-dept" class="btn btn-primary mb-4 w-full"><i class="fas fa-plus"></i> 添加新科室</button>
+
+                    <div class="text-sm font-bold text-blue-400 uppercase mb-4 border-b border-gray-700 pb-2"><i class="fas fa-sliders-h"></i> 属性编辑</div>
+                    <div id="no-selection" class="text-gray-500 text-xs py-6 text-center bg-gray-800/30 rounded border border-dashed border-gray-700 mb-4">请选择科室</div>
+                    
+                    <div id="selection-controls" style="display: none;" class="mb-4">
+                        <div class="form-group"><label class="form-label">名称</label><input type="text" id="input-name" class="form-input"></div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="form-group"><label class="form-label">颜色</label><input type="color" id="input-color" class="form-input h-8 p-0"></div>
+                            <div class="form-group"><label class="form-label">床位</label><input type="number" id="input-beds-prop" class="form-input"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="form-group"><label class="form-label">宽 (X)</label><input type="number" id="input-width" class="form-input"></div>
+                            <div class="form-group"><label class="form-label">深 (Z)</label><input type="number" id="input-depth" class="form-input"></div>
+                            <div class="form-group"><label class="form-label">高 (Y)</label><input type="number" id="input-height" class="form-input"></div>
+                            <div class="form-group"><label class="form-label">楼层</label><input type="number" id="input-y" class="form-input"></div>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-400 flex justify-between">
+                            <span>面积:</span><span id="current-area" class="text-white">0</span>
+                        </div>
+                        <button id="btn-delete-dept" class="btn btn-danger w-full mt-3 text-xs py-2">删除</button>
+                    </div>
+
+                    <div id="multi-selection-controls" style="display: none;" class="mb-4 text-center">
+                        <div class="text-xl font-bold text-blue-400 mb-2"><span id="multi-count">0</span> 个选中</div>
+                        <div class="flex gap-2 justify-center">
+                            <button id="btn-deselect-all" class="btn btn-secondary text-xs">取消</button>
+                            <button id="btn-delete-multi" class="btn btn-danger text-xs" style="margin:0">删除</button>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-divider"></div>
+                    <div class="text-sm font-bold text-blue-400 uppercase mb-4 border-b border-gray-700 pb-2"><i class="fas fa-list"></i> 科室列表</div>
+                    <div id="dept-list" class="flex-1 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- === VIEW 2: CALCULATOR === -->
+        <div id="view-calc" class="view-section" style="overflow-y: auto;">
+            <div id="calc-container">
+                <!-- Global Settings Card -->
+                <div class="calc-card">
+                    <div class="calc-header">
+                        <span><i class="fas fa-cog text-blue-400 mr-2"></i> 全局测算指标</span>
+                        <button class="btn btn-primary" onclick="window.syncTo3D()"><i class="fas fa-sync"></i> 同步至 3D 模型</button>
+                    </div>
+                    <div class="calc-grid">
+                        <div class="calc-input-group">
+                            <label>🏥 目标总床位数 (张)</label>
+                            <input type="number" id="calc-total-beds" class="calc-input" value="500" oninput="window.recalc()">
+                        </div>
+                        <div class="calc-input-group">
+                            <label>📐 单床综合建筑面积 (㎡/床)</label>
+                            <input type="number" id="calc-area-per-bed" class="calc-input" value="120" oninput="window.recalc()">
+                        </div>
+                        <div class="calc-input-group">
+                            <label>🏢 目标总建筑面积 (㎡)</label>
+                            <input type="text" id="calc-total-area-target" class="calc-input text-green-400 font-bold" readonly value="60000">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Department Breakdown Card -->
+                <div class="calc-card">
+                    <div class="calc-header">
+                        <span><i class="fas fa-table text-purple-400 mr-2"></i> 科室面积配比与校核</span>
+                        <div class="text-sm font-normal text-gray-400">
+                            当前3D总面积: <span id="calc-current-3d-area" class="text-white font-mono">0</span> ㎡
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="calc-table">
+                            <thead>
+                                <tr>
+                                    <th width="20%">科室名称</th>
+                                    <th width="15%">面积占比 (%)</th>
+                                    <th width="15%">目标面积 (㎡)</th>
+                                    <th width="15%">当前3D面积 (㎡)</th>
+                                    <th width="15%">差异</th>
+                                    <th width="20%">说明</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calc-table-body">
+                                <!-- Generated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+
+        // --- GLOBAL STATE ---
+        const initialDepartments = [
+            { id: 'emergency', name: '急诊部', color: '#ef4444', beds: 50, w: 40, h: 5, d: 30, x: -50, y: 2.5, z: 20 },
+            { id: 'imaging', name: '影像中心', color: '#3b82f6', beds: 0, w: 30, h: 5, d: 25, x: 0, y: 2.5, z: 20 },
+            { id: 'surgery', name: '手术中心', color: '#a855f7', beds: 20, w: 40, h: 6, d: 40, x: 0, y: 10, z: 0 },
+            { id: 'icu', name: 'ICU 重症', color: '#ef4444', beds: 30, w: 25, h: 5, d: 20, x: -40, y: 10, z: 0 },
+            { id: 'outpatient', name: '门诊大厅', color: '#22c55e', beds: 0, w: 60, h: 8, d: 40, x: 0, y: 4, z: 70 },
+            { id: 'pharmacy', name: '中心药房', color: '#f97316', beds: 0, w: 20, h: 5, d: 15, x: 50, y: 2.5, z: 60 },
+            { id: 'inpatient_1', name: '住院部 A', color: '#eab308', beds: 100, w: 80, h: 4, d: 20, x: 0, y: 20, z: -40 },
+            { id: 'inpatient_2', name: '住院部 B', color: '#eab308', beds: 100, w: 80, h: 4, d: 20, x: 0, y: 26, z: -40 },
+            { id: 'lab', name: '检验科', color: '#3b82f6', beds: 0, w: 25, h: 5, d: 25, x: 40, y: 2.5, z: 20 },
+        ];
+        
+        // Planning Config State (Calculator)
+        let planningConfig = {
+            totalBeds: 500,
+            areaPerBed: 120,
+            // Default ratios. If a dept is added in 3D, it will be added here dynamically.
+            deptRatios: [
+                 { id: 'emergency', ratio: 8 },
+                 { id: 'outpatient', ratio: 15 },
+                 { id: 'imaging', ratio: 10 },
+                 { id: 'surgery', ratio: 12 },
+                 { id: 'icu', ratio: 5 },
+                 { id: 'inpatient_1', ratio: 20 },
+                 { id: 'inpatient_2', ratio: 20 },
+                 { id: 'pharmacy', ratio: 4 },
+                 { id: 'lab', ratio: 6 }
+            ]
+        };
+
+        // --- TAB SWITCHING ---
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`view-${tabId}`).classList.add('active');
+            const tabs = document.querySelectorAll('.nav-tab');
+            if(tabId === '3d') tabs[0].classList.add('active');
+            else {
+                tabs[1].classList.add('active');
+                window.recalc(); // Refresh calc view on open
+            }
+        };
+        
+        window.toggleSidebar = function(side) {
+             const sidebar = document.getElementById(`sidebar-${side}`);
+             const icon = document.getElementById(`icon-${side}`);
+             const collapsedClass = `collapsed-${side}`;
+             sidebar.classList.toggle(collapsedClass);
+             
+             // Rotate icon
+             const isCollapsed = sidebar.classList.contains(collapsedClass);
+             const rot = (side === 'left') ? (isCollapsed ? '180deg' : '0deg') : (isCollapsed ? '180deg' : '0deg');
+             icon.style.transform = `rotate(${rot})`;
+        };
+
+        // --- CALCULATOR LOGIC ---
+        window.recalc = function() {
+            // Read UI
+            planningConfig.totalBeds = parseFloat(document.getElementById('calc-total-beds').value) || 0;
+            planningConfig.areaPerBed = parseFloat(document.getElementById('calc-area-per-bed').value) || 0;
+            const targetTotalArea = planningConfig.totalBeds * planningConfig.areaPerBed;
+            
+            document.getElementById('calc-total-area-target').value = targetTotalArea.toLocaleString();
+            
+            const tbody = document.getElementById('calc-table-body');
+            tbody.innerHTML = '';
+            
+            let current3DTotal = 0;
+            const currentAreas = {};
+            blocks.forEach(b => {
+                currentAreas[b.userData.id] = b.scale.x * b.scale.z;
+                current3DTotal += (b.scale.x * b.scale.z);
+            });
+            document.getElementById('calc-current-3d-area').innerText = current3DTotal.toLocaleString();
+
+            // Sync Ratios: Ensure all 3D blocks have a ratio config
+            blocks.forEach(b => {
+                const found = planningConfig.deptRatios.find(d => d.id === b.userData.id);
+                if(!found) {
+                     planningConfig.deptRatios.push({ id: b.userData.id, ratio: 5 }); // Default 5%
+                }
+            });
+
+            // Build Table
+            // Iterate over all known configs (from initial or added)
+            // But we also need Name and Color from 3D blocks or initial data if block deleted
+            // Strategy: Use planningConfig.deptRatios as the source of rows
+            
+            planningConfig.deptRatios.forEach(conf => {
+                // Try to find Name/Color from 3D block first, then initial
+                let name = "未知科室";
+                let color = "#999";
+                
+                const block = blocks.find(b => b.userData.id === conf.id);
+                if(block) {
+                    name = block.userData.name;
+                    color = block.userData.color;
+                } else {
+                    const init = initialDepartments.find(i => i.id === conf.id);
+                    if(init) {
+                        name = init.name;
+                        color = init.color;
+                    }
+                }
+                
+                const targetArea = (targetTotalArea * conf.ratio) / 100;
+                const currentArea = currentAreas[conf.id] || 0;
+                const diff = currentArea - targetArea;
+                const diffPercent = targetArea > 0 ? (diff / targetArea * 100) : 0;
+                
+                let diffClass = 'diff-ok';
+                let diffIcon = 'fa-check-circle';
+                if (Math.abs(diffPercent) > 10) {
+                    diffClass = diff > 0 ? 'diff-pos' : 'diff-neg';
+                    diffIcon = diff > 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="font-bold text-gray-300">
+                        <span class="status-dot" style="background:${color}"></span> ${name}
+                    </td>
+                    <td>
+                        <input type="number" value="${conf.ratio}" 
+                               onchange="window.updateRatio('${conf.id}', this.value)"
+                               style="width: 50px; border-bottom: 1px solid #555;"> %
+                    </td>
+                    <td class="font-mono">${targetArea.toFixed(0)}</td>
+                    <td class="font-mono text-white">${currentArea.toFixed(0)}</td>
+                    <td class="${diffClass} font-mono text-xs">
+                        <i class="fas ${diffIcon}"></i> ${Math.abs(diff).toFixed(0)}
+                    </td>
+                    <td class="text-xs text-gray-500">建议值</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+
+        window.updateRatio = function(id, val) {
+            const conf = planningConfig.deptRatios.find(d => d.id === id);
+            if(conf) {
+                conf.ratio = parseFloat(val);
+                window.recalc();
+            }
+        };
+
+        window.syncTo3D = function() {
+            if(!confirm("确定要根据测算指标调整所有科室的面积吗？\n这将改变 3D 模型中科室的尺寸。")) return;
+            
+            const targetTotal = planningConfig.totalBeds * planningConfig.areaPerBed;
+
+            blocks.forEach(block => {
+                const conf = planningConfig.deptRatios.find(d => d.id === block.userData.id);
+                if (conf) {
+                    const targetArea = (targetTotal * conf.ratio) / 100;
+                    if (targetArea > 0) {
+                        const currentArea = block.scale.x * block.scale.z;
+                        if (currentArea > 0) {
+                            const k = Math.sqrt(targetArea / currentArea);
+                            block.scale.x *= k;
+                            block.scale.z *= k;
+                            block.updateMatrix();
+                        } else {
+                            const side = Math.sqrt(targetArea);
+                            block.scale.set(side, block.scale.y, side);
+                        }
+                        updateBlockLabel(block);
+                    }
+                }
+            });
+            
+            updateConnectionsAndGlobalStats(true);
+            window.recalc();
+            alert("同步完成！");
+            window.switchTab('3d');
+        };
+
+
+        // --- 3D ENGINE VARIABLES ---
+        let blocks = []; 
+        let blockMap = {};
+        let connectionLines = []; 
+        let coreMeshes = [];
+        let selectedBlocks = []; 
+        let selectedBlock = null; 
+        let showDistanceLabels = true;
+        let isSortedByDistance = false;
+        let frameCounter = 0;
+        
+        // --- 3D Setup ---
+        const canvas = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0f172a); 
+        
+        const gridHelper = new THREE.GridHelper(400, 40, 0x334155, 0x1e293b);
+        scene.add(gridHelper);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(100, 200, 100);
+        scene.add(dirLight);
+
+        // Ortho Camera
+        const aspect = window.innerWidth / window.innerHeight;
+        const frustumSize = 300;
+        const camera = new THREE.OrthographicCamera( 
+            frustumSize * aspect / - 2, frustumSize * aspect / 2, 
+            frustumSize / 2, frustumSize / - 2, 1, 5000 
+        );
+        camera.position.set(200, 200, 200); 
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        canvas.appendChild(renderer.domElement);
+
+        const orbit = new OrbitControls(camera, renderer.domElement);
+        orbit.enableDamping = true;
+        orbit.mouseButtons = { LEFT: null, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.ROTATE };
+        
+        const transformControl = new TransformControls(camera, renderer.domElement);
+        transformControl.addEventListener('dragging-changed', e => orbit.enabled = !e.value);
+        transformControl.setTranslationSnap(1); 
+        scene.add(transformControl);
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        // --- Selection State ---
+        let isSelecting = false;
+        let startSelectionCoords = { x: 0, y: 0 };
+        const selectionBox = document.getElementById('selection-box');
+
+        // --- DOM Elements ---
+        const deptListContainer = document.getElementById('dept-list');
+        const labelsLayer = document.getElementById('labels-layer');
+        const relListContainer = document.getElementById('relationship-list');
+
+        // --- Functions ---
+        
+        function createBlock(data) {
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const material = new THREE.MeshStandardMaterial({
+                color: new THREE.Color(data.color),
+                transparent: true, opacity: 0.85, roughness: 0.2, metalness: 0.1
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.scale.set(data.w, data.h, data.d);
+            mesh.position.set(data.x, data.y, data.z);
+            mesh.userData = { ...data, color: data.color }; 
+            
+            scene.add(mesh);
+            blocks.push(mesh);
+            blockMap[data.id] = mesh;
+
+            // HTML Label
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'dept-label';
+            labelDiv.id = `label-${data.id}`;
+            labelsLayer.appendChild(labelDiv);
+            mesh.userData.labelElement = labelDiv;
+            updateBlockLabel(mesh);
+
+            return mesh;
+        }
+
+        function updateBlockLabel(block) {
+            const data = block.userData;
+            const area = (block.scale.x * block.scale.z).toFixed(0);
+            if (data.labelElement) {
+                data.labelElement.innerHTML = `<span>${data.name}</span><span class="area-tag">${area}m²</span>`;
+            }
+        }
+
+        function updateCoreMeshes() {
+            coreMeshes.forEach(m => { scene.remove(m); m.geometry.dispose(); m.material.dispose(); });
+            coreMeshes = [];
+            
+            const segments = [];
+            connectionLines.forEach(conn => {
+                const s = conn.fromMesh.position;
+                const e = conn.toMesh.position;
+                const minY = Math.min(s.y, e.y), maxY = Math.max(s.y, e.y);
+                if (maxY - minY > 2) segments.push({ x: e.x, z: e.z, min: minY, max: maxY });
+            });
+
+            const groups = {};
+            segments.forEach(seg => {
+                const key = `${Math.round(seg.x)},${Math.round(seg.z)}`;
+                if(!groups[key]) groups[key] = [];
+                groups[key].push(seg);
+            });
+
+            Object.values(groups).forEach(grp => {
+                grp.sort((a,b) => a.min - b.min);
+                const merged = [];
+                if(grp.length > 0) {
+                    let curr = grp[0];
+                    for(let i=1; i<grp.length; i++) {
+                        if(grp[i].min <= curr.max + 0.5) curr.max = Math.max(curr.max, grp[i].max);
+                        else { merged.push(curr); curr = grp[i]; }
+                    }
+                    merged.push(curr);
+                }
+                
+                merged.forEach(seg => {
+                    const h = seg.max - seg.min;
+                    const geo = new THREE.BoxGeometry(4, h + 2, 4);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.6 });
+                    const core = new THREE.Mesh(geo, mat);
+                    core.position.set(seg.x, seg.min + h/2, seg.z);
+                    scene.add(core);
+                    coreMeshes.push(core);
+                });
+            });
+            updateDepartmentBrowser();
+        }
+
+        function regenerateAllConnections() {
+            connectionLines.forEach(c => {
+                scene.remove(c.mesh); c.mesh.geometry.dispose(); c.mesh.material.dispose();
+                if(c.labelEl) c.labelEl.remove();
+            });
+            connectionLines = [];
+            
+            for(let i=0; i<blocks.length; i++) {
+                for(let j=i+1; j<blocks.length; j++) {
+                    const p = [new THREE.Vector3(), new THREE.Vector3()];
+                    const geo = new THREE.BufferGeometry().setFromPoints(p);
+                    const mat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 2, gapSize: 1, opacity: 0.4, transparent: true });
+                    const line = new THREE.Line(geo, mat);
+                    scene.add(line);
+                    
+                    const lbl = document.createElement('div');
+                    lbl.className = 'distance-label';
+                    labelsLayer.appendChild(lbl);
+                    
+                    connectionLines.push({
+                        mesh: line, labelEl: lbl,
+                        fromMesh: blocks[i], toMesh: blocks[j]
+                    });
+                }
+            }
+        }
+
+        function updateConnectionsAndGlobalStats(force) {
+            let area = 0, vol = 0, beds = 0;
+            blocks.forEach(b => {
+                area += b.scale.x * b.scale.z;
+                vol += b.scale.x * b.scale.y * b.scale.z;
+                beds += (parseInt(b.userData.beds) || 0);
+            });
+            document.getElementById('total-area').innerText = area.toFixed(0) + " m²";
+            document.getElementById('total-volume').innerText = vol.toFixed(0) + " m³";
+            document.getElementById('dept-count').innerText = blocks.length;
+            document.getElementById('total-beds').innerText = beds;
+
+            if(force) { updateCoreMeshes(); }
+
+            // Update Lines
+            const listData = [];
+            connectionLines.forEach(c => {
+                const s = c.fromMesh.position;
+                const e = c.toMesh.position;
+                
+                const p1 = new THREE.Vector3(e.x, s.y, s.z);
+                const p2 = new THREE.Vector3(e.x, s.y, e.z);
+                
+                const positions = new Float32Array([
+                    s.x, s.y, s.z, p1.x, p1.y, p1.z,
+                    p2.x, p2.y, p2.z, e.x, e.y, e.z
+                ]);
+                c.mesh.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                c.mesh.computeLineDistances();
+
+                const dist = Math.abs(s.x - e.x) + Math.abs(s.z - e.z);
+                const turns = (Math.abs(s.x - e.x) > 1 && Math.abs(s.z - e.z) > 1) ? 1 : 0;
+                const isTooFar = dist > 100;
+                
+                const isSel = selectedBlocks.length > 0;
+                const isRel = isSel && (selectedBlocks.includes(c.fromMesh) || selectedBlocks.includes(c.toMesh));
+                
+                let op = 0.4;
+                if(isSel) op = isRel ? 1.0 : 0.05;
+                
+                c.mesh.material.opacity = showDistanceLabels ? op : (isSel ? op : 0.1);
+                c.mesh.material.color.set(isTooFar ? '#ef4444' : '#22c55e');
+
+                const mid = new THREE.Vector3().addVectors(s, e).multiplyScalar(0.5);
+                mid.project(camera);
+                
+                const showLbl = showDistanceLabels || isRel;
+                if(showLbl) {
+                    const x = (mid.x * .5 + .5) * window.innerWidth;
+                    const y = (mid.y * -.5 + .5) * window.innerHeight;
+                    c.labelEl.style.display = 'flex';
+                    c.labelEl.style.left = x + 'px';
+                    c.labelEl.style.top = y + 'px';
+                    c.labelEl.textContent = `${dist.toFixed(0)}m`;
+                    c.labelEl.style.color = isTooFar ? '#ef4444' : '#15803d';
+                    c.labelEl.style.opacity = op;
+                } else {
+                    c.labelEl.style.display = 'none';
+                }
+
+                if(force || frameCounter % 30 === 0) {
+                    listData.push({
+                        n1: c.fromMesh.userData.name, n2: c.toMesh.userData.name,
+                        dist, isTooFar, isRel
+                    });
+                }
+            });
+
+            if((force || frameCounter % 30 === 0) && listData.length) {
+                if(isSortedByDistance) listData.sort((a,b) => b.dist - a.dist);
+                let html = '';
+                listData.forEach(d => {
+                    const cls = d.isRel || selectedBlocks.length===0 ? '' : 'opacity-30';
+                    const col = d.isTooFar ? 'text-red-400' : 'text-green-400';
+                    html += `<div class="flex justify-between text-xs py-1 border-b border-white/5 ${cls}">
+                        <span class="truncate w-32" title="${d.n1}-${d.n2}">${d.n1.substring(0,6)}-${d.n2.substring(0,6)}</span>
+                        <span class="${col} font-mono">${d.dist.toFixed(0)}m</span>
+                    </div>`;
+                });
+                relListContainer.innerHTML = html;
+            }
+        }
+
+        function updateDepartmentBrowser() {
+            const list = document.getElementById('dept-list');
+            list.innerHTML = '';
+            blocks.forEach(b => {
+                const item = document.createElement('div');
+                item.className = `list-item ${selectedBlocks.includes(b) ? 'selected' : ''}`;
+                item.innerHTML = `<div class="flex items-center"><span class="status-dot" style="background:${b.userData.color}"></span>${b.userData.name}</div><span class="text-xs text-gray-500">${b.userData.beds}床</span>`;
+                item.onclick = (e) => { e.stopPropagation(); deselectAll(); selectBlock(b); };
+                list.appendChild(item);
+            });
+            coreMeshes.forEach(c => {
+                 const item = document.createElement('div');
+                 item.className = 'list-item core-item';
+                 item.innerHTML = `<div class="flex items-center text-gray-400"><span class="status-dot" style="background:#94a3b8"></span>交通核</div>`;
+                 list.appendChild(item);
+            });
+        }
+
+        // --- Interaction ---
+        function selectBlock(b) {
+            if(!selectedBlocks.includes(b)) selectedBlocks.push(b);
+            selectedBlock = b;
+            transformControl.attach(b);
+            
+            document.getElementById('no-selection').style.display = 'none';
+            document.getElementById('selection-controls').style.display = 'block';
+            
+            document.getElementById('input-name').value = b.userData.name;
+            document.getElementById('input-color').value = b.userData.color;
+            document.getElementById('input-beds-prop').value = b.userData.beds;
+            document.getElementById('input-width').value = b.scale.x;
+            document.getElementById('input-depth').value = b.scale.z;
+            document.getElementById('input-height').value = b.scale.y;
+            document.getElementById('input-y').value = b.position.y;
+            
+            updateConnectionsAndGlobalStats(true);
+        }
+
+        function deselectAll() {
+            selectedBlocks = []; selectedBlock = null;
+            transformControl.detach();
+            document.getElementById('no-selection').style.display = 'block';
+            document.getElementById('selection-controls').style.display = 'none';
+            updateConnectionsAndGlobalStats(true);
+        }
+
+        // --- Event Listeners ---
+        window.addEventListener('resize', () => {
+            const asp = window.innerWidth/window.innerHeight;
+            camera.left = -300*asp/2; camera.right = 300*asp/2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Input Bindings
+        ['input-name','input-color','input-beds-prop','input-width','input-depth','input-height','input-y'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                if(!selectedBlock) return;
+                const b = selectedBlock;
+                b.userData.name = document.getElementById('input-name').value;
+                b.userData.color = document.getElementById('input-color').value;
+                b.material.color.set(b.userData.color);
+                b.userData.beds = document.getElementById('input-beds-prop').value;
+                
+                b.scale.set(
+                    parseFloat(document.getElementById('input-width').value)||1,
+                    parseFloat(document.getElementById('input-height').value)||1,
+                    parseFloat(document.getElementById('input-depth').value)||1
+                );
+                b.position.y = parseFloat(document.getElementById('input-y').value)||0;
+                
+                updateBlockLabel(b);
+                updateConnectionsAndGlobalStats(true);
+            });
+        });
+
+        // Toggle Sort
+        window.toggleSort = () => { isSortedByDistance = !isSortedByDistance; updateConnectionsAndGlobalStats(true); };
+        
+        // Reset UI
+        window.resetUI = () => {
+            document.querySelectorAll('.sidebar').forEach(s => s.classList.remove('collapsed-left','collapsed-right'));
+            document.querySelectorAll('.fas.fa-chevron-left').forEach(i => i.style.transform='rotate(0deg)');
+            window.setView('reset');
+        };
+
+        // Pointer Events for Selection
+        window.addEventListener('pointerdown', e => {
+            if(e.target !== renderer.domElement || transformControl.dragging) return;
+            if(e.button === 0) {
+                isSelecting = true; orbit.enabled = false;
+                startSelectionCoords = { x: e.clientX, y: e.clientY };
+                selectionBox.style.display = 'block';
+                selectionBox.style.left = e.clientX+'px'; selectionBox.style.top = e.clientY+'px';
+                selectionBox.style.width = '0px'; selectionBox.style.height = '0px';
+            }
+        });
+        
+        window.addEventListener('pointermove', e => {
+            if(isSelecting) {
+                const w = Math.abs(e.clientX - startSelectionCoords.x);
+                const h = Math.abs(e.clientY - startSelectionCoords.y);
+                selectionBox.style.width = w+'px'; selectionBox.style.height = h+'px';
+                selectionBox.style.left = Math.min(e.clientX, startSelectionCoords.x)+'px';
+                selectionBox.style.top = Math.min(e.clientY, startSelectionCoords.y)+'px';
+                selectionBox.className = e.clientX > startSelectionCoords.x ? 'selection-mode-window' : 'selection-mode-crossing';
+            }
+        });
+
+        window.addEventListener('pointerup', e => {
+            if(isSelecting) {
+                isSelecting = false; selectionBox.style.display = 'none'; orbit.enabled = true;
+                // If simple click
+                if(Math.abs(e.clientX - startSelectionCoords.x) < 5) {
+                    mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1;
+                    raycaster.setFromCamera(mouse, camera);
+                    const hits = raycaster.intersectObjects(blocks);
+                    if(hits.length) { deselectAll(); selectBlock(hits[0].object); }
+                    else deselectAll();
+                } else {
+                    const minX = Math.min(startSelectionCoords.x, e.clientX);
+                    const maxX = Math.max(startSelectionCoords.x, e.clientX);
+                    const minY = Math.min(startSelectionCoords.y, e.clientY);
+                    const maxY = Math.max(startSelectionCoords.y, e.clientY);
+                    
+                    deselectAll();
+                    blocks.forEach(b => {
+                        const v = b.position.clone().project(camera);
+                        const x = (v.x*.5+.5)*window.innerWidth;
+                        const y = (-v.y*.5+.5)*window.innerHeight;
+                        if(x>=minX && x<=maxX && y>=minY && y<=maxY) selectBlock(b);
+                    });
+                }
+            }
+        });
+
+        // --- NEW/EXPORT/IMPORT LOGIC ---
+        function createNewDepartment() {
+            const id = 'custom_' + Date.now();
+            const colors = ['#f472b6', '#a78bfa', '#34d399', '#fbbf24', '#60a5fa'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            const newDept = {
+                id: id,
+                name: '新建科室',
+                color: randomColor,
+                beds: 0,
+                w: 20, h: 4, d: 20,
+                x: 0, y: 15, z: 0 
+            };
+
+            createBlock(newDept);
+            regenerateAllConnections();
+            deselectAll();
+            // find the block instance
+            const b = blocks.find(x => x.userData.id === id);
+            if(b) selectBlock(b);
+            updateConnectionsAndGlobalStats(true); 
+            window.recalc();
+        }
+
+        function deleteSelectedDepartments() {
+            if (selectedBlocks.length === 0) return;
+            const toDelete = [...selectedBlocks];
+            deselectAll();
+
+            toDelete.forEach(blockToDelete => {
+                scene.remove(blockToDelete);
+                if (blockToDelete.userData.labelElement) blockToDelete.userData.labelElement.remove();
+                
+                blocks = blocks.filter(b => b !== blockToDelete);
+                delete blockMap[blockToDelete.userData.id];
+                
+                blockToDelete.geometry.dispose();
+                blockToDelete.material.dispose();
+            });
+            regenerateAllConnections();
+            updateConnectionsAndGlobalStats(true);
+            window.recalc();
+        }
+
+        const btnAdd = document.getElementById('btn-add-dept');
+        const btnDelete = document.getElementById('btn-delete-dept');
+        const btnDeleteMulti = document.getElementById('btn-delete-multi');
+        const btnDeselectAll = document.getElementById('btn-deselect-all');
+        const btnNewProj = document.getElementById('btn-new-project');
+        const btnExport = document.getElementById('btn-export-project');
+        const btnImport = document.getElementById('btn-import-project');
+        const fileInput = document.getElementById('file-input');
+
+        btnAdd.addEventListener('click', createNewDepartment);
+        btnDelete.addEventListener('click', deleteSelectedDepartments);
+        btnDeleteMulti.addEventListener('click', deleteSelectedDepartments);
+        btnDeselectAll.addEventListener('click', deselectAll);
+        
+        // Export logic updated for new schema
+        btnExport.addEventListener('click', () => {
+            const exportData = {
+                meta: { version: "2.0", appName: "HospitalCAD", timestamp: new Date().toISOString() },
+                planning: planningConfig,
+                design: {
+                    entities: blocks.map(b => ({
+                        id: b.userData.id,
+                        name: b.userData.name,
+                        color: b.userData.color,
+                        beds: b.userData.beds,
+                        x: b.position.x, y: b.position.y, z: b.position.z,
+                        w: b.scale.x, h: b.scale.y, d: b.scale.z
+                    }))
+                }
+            };
+            const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+            const dl = document.createElement('a');
+            dl.setAttribute("href", str);
+            dl.setAttribute("download", "hospital_project_v2.json");
+            document.body.appendChild(dl);
+            dl.click();
+            dl.remove();
+        });
+
+        // Import logic updated for new schema
+        btnImport.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const json = JSON.parse(evt.target.result);
+                    // Handle V2
+                    if (json.meta && json.meta.version === "2.0") {
+                        // Restore Planning
+                        planningConfig = json.planning;
+                        document.getElementById('calc-total-beds').value = planningConfig.totalBeds;
+                        document.getElementById('calc-area-per-bed').value = planningConfig.areaPerBed;
+                        
+                        // Clear Scene
+                        deselectAll();
+                        blocks.forEach(b => {
+                            scene.remove(b);
+                            if(b.userData.labelElement) b.userData.labelElement.remove();
+                            b.geometry.dispose(); b.material.dispose();
+                        });
+                        blocks = []; blockMap = {};
+                        
+                        // Restore Design
+                        json.design.entities.forEach(ent => {
+                            createBlock(ent);
+                        });
+                        
+                        regenerateAllConnections();
+                        updateConnectionsAndGlobalStats(true);
+                        window.recalc();
+                        alert("项目导入成功 (V2)");
+                    } else if (json.project && json.project.departments) {
+                        // Legacy V1 import fallback
+                        deselectAll();
+                        blocks.forEach(b => { scene.remove(b); if(b.userData.labelElement) b.userData.labelElement.remove(); });
+                        blocks = []; blockMap = {};
+                        
+                        json.project.departments.forEach(dept => {
+                            createBlock({
+                                id: dept.id, name: dept.name, color: dept.color, beds: dept.beds,
+                                w: dept.dimensions.width, h: dept.dimensions.height, d: dept.dimensions.depth,
+                                x: dept.position.x, y: dept.position.y, z: dept.position.z
+                            });
+                        });
+                        regenerateAllConnections();
+                        updateConnectionsAndGlobalStats(true);
+                        window.recalc();
+                        alert("旧版项目导入成功");
+                    } else {
+                        alert("未知文件格式");
+                    }
+                } catch(err) {
+                    console.error(err);
+                    alert("文件解析失败");
+                }
+                e.target.value = '';
+            };
+            reader.readAsText(file);
+        });
+
+        // New Project Logic
+        btnNewProj.addEventListener('click', () => {
+            if(confirm("确定要清空当前所有内容并新建空白项目吗？")) {
+                deselectAll();
+                blocks.forEach(b => {
+                    scene.remove(b);
+                    if(b.userData.labelElement) b.userData.labelElement.remove();
+                    b.geometry.dispose(); b.material.dispose();
+                });
+                blocks = [];
+                blockMap = {};
+                // Reset planning to default
+                planningConfig = {
+                    totalBeds: 500,
+                    areaPerBed: 120,
+                    deptRatios: initialDepartments.map(d => ({id: d.id, ratio: d.ratio || 5}))
+                };
+                document.getElementById('calc-total-beds').value = 500;
+                
+                // Add default departments back
+                initialDepartments.forEach(createBlock);
+                regenerateAllConnections();
+                updateConnectionsAndGlobalStats(true);
+                window.recalc();
+            }
+        });
+
+        // Init
+        initialDepartments.forEach(createBlock);
+        regenerateAllConnections();
+        updateConnectionsAndGlobalStats(true);
+        window.recalc(); // Init calc table
+
+        function animate() {
+            requestAnimationFrame(animate);
+            frameCounter++;
+            orbit.update();
+            // Sync labels position
+            blocks.forEach(b => {
+                if(!b.userData.labelElement) return;
+                const v = b.position.clone().project(camera);
+                // hide if behind camera? ortho always front basically
+                b.userData.labelElement.style.left = (v.x*.5+.5)*window.innerWidth + 'px';
+                b.userData.labelElement.style.top = (-v.y*.5+.5)*window.innerHeight + 'px';
+            });
+            
+            updateConnectionsAndGlobalStats(false);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // View Nav exposed
+        window.setView = function(view) {
+            const dist = 300; 
+            let targetPos = new THREE.Vector3();
+            let targetUp = new THREE.Vector3(0, 1, 0); 
+
+            switch(view) {
+                case 'south': targetPos.set(0, 0, dist); break; 
+                case 'north': targetPos.set(0, 0, -dist); break; 
+                case 'east': targetPos.set(dist, 0, 0); break; 
+                case 'west': targetPos.set(-dist, 0, 0); break; 
+                case 'top': 
+                    targetPos.set(0, dist, 0); 
+                    targetUp.set(0, 0, -1); 
+                    break;
+                case 'reset':
+                    targetPos.set(200, 200, 200);
+                    break;
+            }
+
+            if (targetPos) {
+                const startPos = camera.position.clone();
+                const startUp = camera.up.clone();
+                const startZoom = camera.zoom;
+                const targetZoom = 1.0; 
+
+                let progress = 0;
+                orbit.enabled = false;
+
+                function animateView() {
+                    progress += 0.04;
+                    if (progress > 1) progress = 1;
+                    
+                    camera.position.lerpVectors(startPos, targetPos, progress);
+                    camera.up.lerpVectors(startUp, targetUp, progress);
+                    camera.zoom = THREE.MathUtils.lerp(startZoom, targetZoom, progress);
+                    
+                    camera.lookAt(0, 0, 0);
+                    camera.updateProjectionMatrix();
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animateView);
+                    } else {
+                        camera.position.copy(targetPos);
+                        camera.up.copy(targetUp);
+                        camera.zoom = targetZoom;
+                        camera.lookAt(0, 0, 0);
+                        camera.updateProjectionMatrix();
+                        
+                        orbit.target.set(0, 0, 0);
+                        orbit.update();
+                        orbit.enabled = true;
+                    }
+                }
+                animateView();
+            }
+        };
+
+        window.toggleLabels = function() {
+            showDistanceLabels = !showDistanceLabels;
+            const btn = document.getElementById('btn-toggle-labels');
+            if (showDistanceLabels) {
+                btn.textContent = '📏 标注: 开';
+                btn.classList.add('text-blue-400');
+                btn.classList.remove('text-gray-500');
+            } else {
+                btn.textContent = '📏 标注: 关';
+                btn.classList.remove('text-blue-400');
+                btn.classList.add('text-gray-500');
+            }
+            updateConnectionsAndGlobalStats(false); 
+        };
+
+    </script>
+</body>
+</html>
